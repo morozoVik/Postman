@@ -1,6 +1,7 @@
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import Payment
+from .models import Payment, User
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -31,3 +32,67 @@ class PaymentSerializer(serializers.ModelSerializer):
             "payment_method_display",
         ]
         read_only_fields = ["payment_date"]
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """Сериализатор для CRUD операций с пользователями"""
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "phone",
+            "city",
+            "avatar",
+            "is_active",
+            "is_staff",
+            "date_joined",
+        ]
+        read_only_fields = ["id", "date_joined", "is_active", "is_staff"]
+
+
+class UserRegisterSerializer(serializers.ModelSerializer):
+    """Сериализатор для регистрации пользователя"""
+
+    password = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password]
+    )
+    password2 = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "email",
+            "password",
+            "password2",
+            "first_name",
+            "last_name",
+            "phone",
+            "city",
+        ]
+        extra_kwargs = {
+            "first_name": {"required": True},
+            "last_name": {"required": True},
+        }
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password2"]:
+            raise serializers.ValidationError({"password": "Пароли не совпадают"})
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("password2")
+        user = User.objects.create_user(**validated_data)
+        return user
+
+
+class UserDetailSerializer(UserSerializer):
+    """Расширенный сериализатор для детального просмотра пользователя"""
+
+    payments = PaymentSerializer(many=True, read_only=True)
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ["payments"]
