@@ -5,8 +5,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Payment, User
-from .serializers import (PaymentSerializer, UserDetailSerializer,
-                          UserRegisterSerializer, UserSerializer)
+from .serializers import (
+    PaymentSerializer,
+    UserDetailSerializer,
+    UserRegisterSerializer,
+    UserSerializer,
+)
 
 
 class RegisterAPIView(generics.CreateAPIView):

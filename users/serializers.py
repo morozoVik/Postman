@@ -73,15 +73,31 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "phone",
             "city",
         ]
-        extra_kwargs = {
-            "first_name": {"required": True},
-            "last_name": {"required": True},
-        }
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password2"]:
             raise serializers.ValidationError({"password": "Пароли не совпадают"})
         return attrs
+
+    def validate_email(self, value):
+        """Проверка уникальности email"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                "Пользователь с таким email уже существует"
+            )
+        return value
+
+    def validate_first_name(self, value):
+        """Проверка имени"""
+        if not value.strip():
+            raise serializers.ValidationError("Имя не может быть пустым")
+        return value
+
+    def validate_last_name(self, value):
+        """Проверка фамилии"""
+        if not value.strip():
+            raise serializers.ValidationError("Фамилия не может быть пустой")
+        return value
 
     def create(self, validated_data):
         validated_data.pop("password2")
