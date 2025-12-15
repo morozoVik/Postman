@@ -1,16 +1,26 @@
 from django.db.models import Prefetch
+
 from rest_framework import generics, permissions, viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from users.permissions import IsAdminOrModerator, IsModerator, IsOwner
-
+from users.permissions import (
+    IsModerator,
+    IsOwner,
+    IsAdminOrModerator,
+    IsOwnerOrModeratorOrAdmin,
+    IsNotModerator,
+    CanViewOwnObjects
+)
 from .models import Course, Lesson
-from .serializers import CourseDetailSerializer, CourseSerializer, LessonSerializer
+from .serializers import (
+    CourseDetailSerializer,
+    CourseSerializer,
+    LessonSerializer,
+)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.prefetch_related("lessons").all()
-    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -19,19 +29,27 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """Настраиваем права доступа в зависимости от действия"""
-        if self.action == "create":
+        if self.action == 'create':
+            self.permission_classes = [IsAuthenticated, IsNotModerator]
+        elif self.action == 'destroy':
+            self.permission_classes = [IsAuthenticated, IsOwner | permissions.IsAdminUser]
+        elif self.action in ['update', 'partial_update']:
+            self.permission_classes = [IsAuthenticated, IsOwnerOrModeratorOrAdmin]
+        elif self.action in ['list', 'retrieve']:
             self.permission_classes = [IsAuthenticated]
-        elif self.action == "destroy":
-            self.permission_classes = [
-                IsAuthenticated,
-                IsOwner | permissions.IsAdminUser,
-            ]
-        elif self.action in ["update", "partial_update"]:
-            self.permission_classes = [IsAuthenticated, IsOwner | IsAdminOrModerator]
         else:
             self.permission_classes = [IsAuthenticated]
 
         return [permission() for permission in self.permission_classes]
+
+    def get_queryset(self):
+        """Фильтруем queryset в зависимости от прав пользователя"""
+        user = self.request.user
+        if user.is_staff:
+            return Course.objects.all()
+        if user.groups.filter(name='Модераторы').exists():
+            return Course.objects.all()
+        return Course.objects.filter(owner=user)
 
     def perform_create(self, serializer):
         """При создании курса назначаем текущего пользователя владельцем"""
@@ -39,15 +57,22 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 
 class LessonListCreateAPIView(generics.ListCreateAPIView):
-    queryset = Lesson.objects.select_related("course").all()
     serializer_class = LessonSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
         """Разные права для списка и создания"""
-        if self.request.method == "POST":
-            return [IsAuthenticated()]
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsNotModerator()]
         return [IsAuthenticated()]
+
+    def get_queryset(self):
+        """Фильтруем queryset в зависимости от прав пользователя"""
+        user = self.request.user
+        if user.is_staff:
+            return Lesson.objects.select_related("course").all()
+        if user.groups.filter(name='Модераторы').exists():
+            return Lesson.objects.select_related("course").all()
+        return Lesson.objects.select_related("course").filter(owner=user)
 
     def perform_create(self, serializer):
         """При создании урока назначаем текущего пользователя владельцем"""
@@ -55,14 +80,21 @@ class LessonListCreateAPIView(generics.ListCreateAPIView):
 
 
 class LessonRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Lesson.objects.select_related("course").all()
     serializer_class = LessonSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
         """Разные права для разных методов"""
-        if self.request.method == "DELETE":
+        if self.request.method == 'DELETE':
             return [IsAuthenticated(), IsOwner | permissions.IsAdminUser]
-        elif self.request.method in ["PUT", "PATCH"]:
-            return [IsAuthenticated(), IsOwner | IsAdminOrModerator]
+        elif self.request.method in ['PUT', 'PATCH']:
+            return [IsAuthenticated(), IsOwnerOrModeratorOrAdmin]
         return [IsAuthenticated()]
+
+    def get_queryset(self):
+        """Фильтруем queryset в зависимости от прав пользователя"""
+        user = self.request.user
+        if user.is_staff:
+            return Lesson.objects.select_related("course").all()
+        if user.groups.filter(name='Модераторы').exists():
+            return Lesson.objects.select_related("course").all()
+        return Lesson.objects.select_related("course").filter(owner=user)

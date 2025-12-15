@@ -112,3 +112,29 @@ class UserDetailSerializer(UserSerializer):
 
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ["payments"]
+
+
+class PublicUserSerializer(serializers.ModelSerializer):
+    """Сериализатор для публичного просмотра чужого профиля"""
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "email",
+            "first_name",
+            "phone",
+            "city",
+            "avatar",
+            "date_joined",
+        ]
+        read_only_fields = fields
+
+
+class PrivateUserSerializer(UserSerializer):
+    """Сериализатор для просмотра своего профиля (полная информация)"""
+    payments = PaymentSerializer(many=True, read_only=True)
+    last_login = serializers.DateTimeField(read_only=True)
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ["payments", "last_login"]

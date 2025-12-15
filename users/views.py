@@ -1,15 +1,19 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .permissions import IsOwnerOrModeratorOrAdmin
 from .models import Payment, User
 from .serializers import (
     PaymentSerializer,
     UserDetailSerializer,
     UserRegisterSerializer,
     UserSerializer,
+    PublicUserSerializer,
+    PrivateUserSerializer,
 )
 
 
@@ -22,47 +26,85 @@ class RegisterAPIView(generics.CreateAPIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    """ViewSet для CRUD операций с пользователями"""
-
     queryset = User.objects.all()
 
     def get_serializer_class(self):
+        """Выбираем сериализатор в зависимости от действия и прав"""
         if self.action == "create":
             return UserRegisterSerializer
         elif self.action == "retrieve":
-            return UserDetailSerializer
+            if self.request.user.id == int(self.kwargs.get('pk', 0)):
+                return PrivateUserSerializer
+            else:
+                return PublicUserSerializer
         return UserSerializer
 
     def get_permissions(self):
-        """Разрешения: регистрация - публичная, остальное - только для авторизованных"""
+        """Настраиваем права доступа"""
         if self.action == "create":
             return [permissions.AllowAny()]
-        return [permissions.IsAuthenticated()]
+        elif self.action in ["update", "partial_update", "destroy"]:
+            return [IsAuthenticated(), permissions.IsOwner]
+        else:
+            return [IsAuthenticated()]
 
     def get_queryset(self):
-        """Обычные пользователи видят только себя, администраторы - всех"""
+        """Фильтруем пользователей в зависимости от прав"""
         user = self.request.user
         if user.is_staff:
             return User.objects.all()
-        return User.objects.filter(id=user.id)
+        if user.groups.filter(name='Модераторы').exists():
+            return User.objects.all()
+        return User.objects.all()
+
+    def update(self, request, *args, **kwargs):
+        """Ограничиваем обновление только своего профиля"""
+        instance = self.get_object()
+        if instance != request.user:
+            return Response(
+                {"detail": "Вы можете редактировать только свой профиль."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Ограничиваем частичное обновление только своего профиля"""
+        instance = self.get_object()
+        if instance != request.user:
+            return Response(
+                {"detail": "Вы можете редактировать только свой профиль."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        """Ограничиваем удаление только своего профиля"""
+        instance = self.get_object()
+        if instance != request.user and not request.user.is_staff:
+            return Response(
+                {"detail": "Вы можете удалить только свой профиль."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-
     filterset_fields = ["payment_method", "paid_course", "paid_lesson"]
-
     ordering_fields = ["payment_date", "amount"]
     ordering = ["-payment_date"]
 
     def get_queryset(self):
-        """Пользователи видят только свои платежи"""
+        """Фильтруем платежи в зависимости от прав пользователя"""
         user = self.request.user
+
         if user.is_staff:
+            return Payment.objects.all()
+        if user.groups.filter(name='Модераторы').exists():
             return Payment.objects.all()
         return Payment.objects.filter(user=user)
 
@@ -73,5 +115,6 @@ class CurrentUserView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        serializer = UserDetailSerializer(request.user)
+        """Всегда возвращаем полную информацию о текущем пользователе"""
+        serializer = PrivateUserSerializer(request.user)
         return Response(serializer.data)
