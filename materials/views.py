@@ -1,22 +1,14 @@
 from django.db.models import Prefetch
-
 from rest_framework import generics, permissions, viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from users.permissions import (
-    IsModerator,
-    IsOwner,
-    IsAdminOrModerator,
-    IsOwnerOrModeratorOrAdmin,
-    IsNotModerator,
-    CanViewOwnObjects
-)
+from users.permissions import (CanViewOwnObjects, IsAdminOrModerator,
+                               IsModerator, IsNotModerator, IsOwner,
+                               IsOwnerOrModeratorOrAdmin)
+
 from .models import Course, Lesson
-from .serializers import (
-    CourseDetailSerializer,
-    CourseSerializer,
-    LessonSerializer,
-)
+from .serializers import (CourseDetailSerializer, CourseSerializer,
+                          LessonSerializer)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -29,13 +21,16 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """Настраиваем права доступа в зависимости от действия"""
-        if self.action == 'create':
+        if self.action == "create":
             self.permission_classes = [IsAuthenticated, IsNotModerator]
-        elif self.action == 'destroy':
-            self.permission_classes = [IsAuthenticated, IsOwner | permissions.IsAdminUser]
-        elif self.action in ['update', 'partial_update']:
+        elif self.action == "destroy":
+            self.permission_classes = [
+                IsAuthenticated,
+                IsOwner | permissions.IsAdminUser,
+            ]
+        elif self.action in ["update", "partial_update"]:
             self.permission_classes = [IsAuthenticated, IsOwnerOrModeratorOrAdmin]
-        elif self.action in ['list', 'retrieve']:
+        elif self.action in ["list", "retrieve"]:
             self.permission_classes = [IsAuthenticated]
         else:
             self.permission_classes = [IsAuthenticated]
@@ -47,7 +42,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_staff:
             return Course.objects.all()
-        if user.groups.filter(name='Модераторы').exists():
+        if user.groups.filter(name="Модераторы").exists():
             return Course.objects.all()
         return Course.objects.filter(owner=user)
 
@@ -61,7 +56,7 @@ class LessonListCreateAPIView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         """Разные права для списка и создания"""
-        if self.request.method == 'POST':
+        if self.request.method == "POST":
             return [IsAuthenticated(), IsNotModerator()]
         return [IsAuthenticated()]
 
@@ -70,7 +65,7 @@ class LessonListCreateAPIView(generics.ListCreateAPIView):
         user = self.request.user
         if user.is_staff:
             return Lesson.objects.select_related("course").all()
-        if user.groups.filter(name='Модераторы').exists():
+        if user.groups.filter(name="Модераторы").exists():
             return Lesson.objects.select_related("course").all()
         return Lesson.objects.select_related("course").filter(owner=user)
 
@@ -84,9 +79,9 @@ class LessonRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_permissions(self):
         """Разные права для разных методов"""
-        if self.request.method == 'DELETE':
+        if self.request.method == "DELETE":
             return [IsAuthenticated(), IsOwner | permissions.IsAdminUser]
-        elif self.request.method in ['PUT', 'PATCH']:
+        elif self.request.method in ["PUT", "PATCH"]:
             return [IsAuthenticated(), IsOwnerOrModeratorOrAdmin]
         return [IsAuthenticated()]
 
@@ -95,6 +90,6 @@ class LessonRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
         user = self.request.user
         if user.is_staff:
             return Lesson.objects.select_related("course").all()
-        if user.groups.filter(name='Модераторы').exists():
+        if user.groups.filter(name="Модераторы").exists():
             return Lesson.objects.select_related("course").all()
         return Lesson.objects.select_related("course").filter(owner=user)

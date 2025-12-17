@@ -5,16 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .permissions import IsOwnerOrModeratorOrAdmin
 from .models import Payment, User
-from .serializers import (
-    PaymentSerializer,
-    UserDetailSerializer,
-    UserRegisterSerializer,
-    UserSerializer,
-    PublicUserSerializer,
-    PrivateUserSerializer,
-)
+from .permissions import IsOwnerOrModeratorOrAdmin
+from .serializers import (PaymentSerializer, PrivateUserSerializer,
+                          PublicUserSerializer, UserDetailSerializer,
+                          UserRegisterSerializer, UserSerializer)
 
 
 class RegisterAPIView(generics.CreateAPIView):
@@ -33,7 +28,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return UserRegisterSerializer
         elif self.action == "retrieve":
-            if self.request.user.id == int(self.kwargs.get('pk', 0)):
+            if self.request.user.id == int(self.kwargs.get("pk", 0)):
                 return PrivateUserSerializer
             else:
                 return PublicUserSerializer
@@ -53,7 +48,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_staff:
             return User.objects.all()
-        if user.groups.filter(name='Модераторы').exists():
+        if user.groups.filter(name="Модераторы").exists():
             return User.objects.all()
         return User.objects.all()
 
@@ -63,7 +58,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if instance != request.user:
             return Response(
                 {"detail": "Вы можете редактировать только свой профиль."},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
         return super().update(request, *args, **kwargs)
 
@@ -73,7 +68,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if instance != request.user:
             return Response(
                 {"detail": "Вы можете редактировать только свой профиль."},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
         return super().partial_update(request, *args, **kwargs)
 
@@ -83,7 +78,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if instance != request.user and not request.user.is_staff:
             return Response(
                 {"detail": "Вы можете удалить только свой профиль."},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
         return super().destroy(request, *args, **kwargs)
 
@@ -104,7 +99,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
         if user.is_staff:
             return Payment.objects.all()
-        if user.groups.filter(name='Модераторы').exists():
+        if user.groups.filter(name="Модераторы").exists():
             return Payment.objects.all()
         return Payment.objects.filter(user=user)
 

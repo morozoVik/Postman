@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import Course, Lesson
+from .validators import validate_youtube_url
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -10,6 +11,7 @@ class LessonSerializer(serializers.ModelSerializer):
         model = Lesson
         fields = "__all__"
         read_only_fields = ["owner"]
+        extra_kwargs = {"video_link": {"validators": [validate_youtube_url]}}
 
 
 class CourseSerializer(serializers.ModelSerializer):

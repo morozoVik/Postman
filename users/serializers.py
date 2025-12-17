@@ -133,6 +133,7 @@ class PublicUserSerializer(serializers.ModelSerializer):
 
 class PrivateUserSerializer(UserSerializer):
     """Сериализатор для просмотра своего профиля (полная информация)"""
+
     payments = PaymentSerializer(many=True, read_only=True)
     last_login = serializers.DateTimeField(read_only=True)
 
