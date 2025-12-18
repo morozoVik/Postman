@@ -11,12 +11,14 @@ from users.permissions import (CanViewOwnObjects, IsAdminOrModerator,
                                IsOwnerOrModeratorOrAdmin)
 
 from .models import Course, Lesson, Subscription
+from .paginators import CoursePagination, LessonPagination
 from .serializers import (CourseDetailSerializer, CourseSerializer,
                           LessonSerializer, SubscriptionSerializer)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.prefetch_related("lessons").all()
+    pagination_class = CoursePagination
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -57,6 +59,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 class LessonListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
+    pagination_class = LessonPagination
 
     def get_permissions(self):
         """Разные права для списка и создания"""

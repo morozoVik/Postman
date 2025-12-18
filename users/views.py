@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Payment, User
+from .paginators import PaymentPagination, UserPagination
 from .permissions import IsOwnerOrModeratorOrAdmin
 from .serializers import (PaymentSerializer, PrivateUserSerializer,
                           PublicUserSerializer, UserDetailSerializer,
@@ -22,6 +23,7 @@ class RegisterAPIView(generics.CreateAPIView):
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
+    pagination_class = UserPagination
 
     def get_serializer_class(self):
         """Выбираем сериализатор в зависимости от действия и прав"""
@@ -87,6 +89,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = PaymentPagination
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["payment_method", "paid_course", "paid_lesson"]
