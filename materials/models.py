@@ -63,21 +63,21 @@ class Subscription(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        verbose_name='пользователь',
-        related_name='subscriptions'
+        verbose_name="пользователь",
+        related_name="subscriptions",
     )
     course = models.ForeignKey(
         Course,
         on_delete=models.CASCADE,
-        verbose_name='курс',
-        related_name='subscriptions'
+        verbose_name="курс",
+        related_name="subscriptions",
     )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='дата подписки')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="дата подписки")
 
     class Meta:
-        unique_together = ['user', 'course']
-        verbose_name = 'подписка'
-        verbose_name_plural = 'подписки'
+        unique_together = ["user", "course"]
+        verbose_name = "подписка"
+        verbose_name_plural = "подписки"
 
     def __str__(self):
         return f'{self.user.email} подписан на "{self.course.title}"'

@@ -1,16 +1,15 @@
 import pytest
+from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.urls import reverse
-from rest_framework.test import APITestCase
 from rest_framework import status
-from django.contrib.auth.models import Group
+from rest_framework.exceptions import ValidationError
+from rest_framework.test import APITestCase
 
 from materials.models import Course, Lesson, Subscription
-from users.models import User
 from materials.serializers import LessonSerializer
 from materials.validators import validate_youtube_url
-from rest_framework.exceptions import ValidationError
-
+from users.models import User
 
 
 class YouTubeURLValidatorTestCase(TestCase):
@@ -89,43 +88,36 @@ class LessonCRUDTestCase(APITestCase):
     def setUp(self):
         """Создание тестовых данных"""
         self.owner = User.objects.create_user(
-            email="owner@example.com",
-            password="password123"
+            email="owner@example.com", password="password123"
         )
 
         self.other_user = User.objects.create_user(
-            email="other@example.com",
-            password="password123"
+            email="other@example.com", password="password123"
         )
 
         self.moderator = User.objects.create_user(
-            email="moderator@example.com",
-            password="password123"
+            email="moderator@example.com", password="password123"
         )
         moderator_group, _ = Group.objects.get_or_create(name="Модераторы")
         self.moderator.groups.add(moderator_group)
 
         self.admin = User.objects.create_user(
-            email="admin@example.com",
-            password="password123",
-            is_staff=True
+            email="admin@example.com", password="password123", is_staff=True
         )
 
         self.owner_course = Course.objects.create(
-            title="Курс владельца",
-            owner=self.owner
+            title="Курс владельца", owner=self.owner
         )
 
         self.other_course = Course.objects.create(
-            title="Чужой курс",
-            owner=self.other_user
+            title="Чужой курс", owner=self.other_user
         )
 
         self.lesson = Lesson.objects.create(
             title="Тестовый урок",
             description="Описание урока",
             course=self.owner_course,
-            owner=self.owner
+            owner=self.owner,
         )
 
     def test_create_lesson_by_owner(self):
@@ -135,7 +127,7 @@ class LessonCRUDTestCase(APITestCase):
         data = {
             "title": "Новый урок от владельца",
             "description": "Описание",
-            "course": self.owner_course.id
+            "course": self.owner_course.id,
         }
 
         response = self.client.post(url, data, format="json")
@@ -147,10 +139,7 @@ class LessonCRUDTestCase(APITestCase):
         """Модератор НЕ может создать урок"""
         self.client.force_authenticate(user=self.moderator)
         url = reverse("lesson-list-create")
-        data = {
-            "title": "Урок от модератора",
-            "course": self.owner_course.id
-        }
+        data = {"title": "Урок от модератора", "course": self.owner_course.id}
 
         response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -159,10 +148,7 @@ class LessonCRUDTestCase(APITestCase):
         """Администратор может создать урок"""
         self.client.force_authenticate(user=self.admin)
         url = reverse("lesson-list-create")
-        data = {
-            "title": "Урок от администратора",
-            "course": self.owner_course.id
-        }
+        data = {"title": "Урок от администратора", "course": self.owner_course.id}
 
         response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -232,14 +218,10 @@ class SubscriptionTestCase(APITestCase):
     def setUp(self):
         """Создание тестовых данных"""
         self.user = User.objects.create_user(
-            email="user@example.com",
-            password="password123"
+            email="user@example.com", password="password123"
         )
 
-        self.course = Course.objects.create(
-            title="Курс для подписки",
-            owner=self.user
-        )
+        self.course = Course.objects.create(title="Курс для подписки", owner=self.user)
 
     def test_subscribe_to_course(self):
         """Пользователь может подписаться на курс"""
@@ -320,36 +302,26 @@ class DifferentUserRolesTestCase(APITestCase):
         self.moderator_group, _ = Group.objects.get_or_create(name="Модераторы")
 
         self.owner = User.objects.create_user(
-            email="owner@example.com",
-            password="password123"
+            email="owner@example.com", password="password123"
         )
 
         self.regular_user = User.objects.create_user(
-            email="regular@example.com",
-            password="password123"
+            email="regular@example.com", password="password123"
         )
 
         self.moderator = User.objects.create_user(
-            email="moderator@example.com",
-            password="password123"
+            email="moderator@example.com", password="password123"
         )
         self.moderator.groups.add(self.moderator_group)
 
         self.admin = User.objects.create_user(
-            email="admin@example.com",
-            password="password123",
-            is_staff=True
+            email="admin@example.com", password="password123", is_staff=True
         )
 
-        self.course = Course.objects.create(
-            title="Тестовый курс",
-            owner=self.owner
-        )
+        self.course = Course.objects.create(title="Тестовый курс", owner=self.owner)
 
         self.lesson = Lesson.objects.create(
-            title="Тестовый урок",
-            course=self.course,
-            owner=self.owner
+            title="Тестовый урок", course=self.course, owner=self.owner
         )
 
     def test_owner_can_view_own_course(self):
@@ -384,10 +356,7 @@ class DifferentUserRolesTestCase(APITestCase):
         """Модератор не может создать урок"""
         self.client.force_authenticate(user=self.moderator)
         url = reverse("lesson-list-create")
-        data = {
-            "title": "Новый урок от модератора",
-            "course": self.course.id
-        }
+        data = {"title": "Новый урок от модератора", "course": self.course.id}
 
         response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -396,11 +365,7 @@ class DifferentUserRolesTestCase(APITestCase):
         """Администратор может создать урок"""
         self.client.force_authenticate(user=self.admin)
         url = reverse("lesson-list-create")
-        data = {
-            "title": "Новый урок от админа",
-            "course": self.course.id
-        }
+        data = {"title": "Новый урок от админа", "course": self.course.id}
 
         response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-

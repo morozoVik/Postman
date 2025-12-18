@@ -1,19 +1,27 @@
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
-
 from rest_framework import generics, permissions, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from users.permissions import (CanViewOwnObjects, IsAdminOrModerator,
-                               IsModerator, IsNotModerator, IsOwner,
-                               IsOwnerOrModeratorOrAdmin)
+from users.permissions import (
+    CanViewOwnObjects,
+    IsAdminOrModerator,
+    IsModerator,
+    IsNotModerator,
+    IsOwner,
+    IsOwnerOrModeratorOrAdmin,
+)
 
 from .models import Course, Lesson, Subscription
 from .paginators import CoursePagination, LessonPagination
-from .serializers import (CourseDetailSerializer, CourseSerializer,
-                          LessonSerializer, SubscriptionSerializer)
+from .serializers import (
+    CourseDetailSerializer,
+    CourseSerializer,
+    LessonSerializer,
+    SubscriptionSerializer,
+)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -105,26 +113,36 @@ class LessonRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 class SubscriptionAPIView(APIView):
     """APIView для управления подпиской на курс"""
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         user = request.user
-        course_id = request.data.get('course_id')
+        course_id = request.data.get("course_id")
 
         if not course_id:
             return Response({"error": "course_id обязателен"}, status=400)
 
         course_item = get_object_or_404(Course, id=course_id)
 
-        subs_exists = Subscription.objects.filter(user=user, course=course_item).exists()
+        subs_exists = Subscription.objects.filter(
+            user=user, course=course_item
+        ).exists()
 
         if subs_exists:
             Subscription.objects.filter(user=user, course=course_item).delete()
-            message = 'Подписка удалена'
+            message = "Подписка удалена"
             is_subscribed = False
         else:
             Subscription.objects.create(user=user, course=course_item)
-            message = 'Подписка добавлена'
+            message = "Подписка добавлена"
             is_subscribed = True
 
-        return Response({"message": message, "course_id": course_id, "is_subscribed": is_subscribed, "course_title": course_item.title})
+        return Response(
+            {
+                "message": message,
+                "course_id": course_id,
+                "is_subscribed": is_subscribed,
+                "course_title": course_item.title,
+            }
+        )
