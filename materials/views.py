@@ -32,7 +32,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         elif self.action == "destroy":
             self.permission_classes = [
                 IsAuthenticated,
-                IsOwner | permissions.IsAdminUser,
+                permissions.IsAdminUser,
             ]
         elif self.action in ["update", "partial_update"]:
             self.permission_classes = [IsAuthenticated, IsOwnerOrModeratorOrAdmin]
@@ -83,6 +83,7 @@ class LessonListCreateAPIView(generics.ListCreateAPIView):
 
 class LessonRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = LessonSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
         """Разные права для разных методов"""
