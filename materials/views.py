@@ -5,23 +5,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from users.permissions import (
-    CanViewOwnObjects,
-    IsAdminOrModerator,
-    IsModerator,
-    IsNotModerator,
-    IsOwner,
-    IsOwnerOrModeratorOrAdmin,
-)
+from users.permissions import (CanViewOwnObjects, IsAdminOrModerator,
+                               IsModerator, IsNotModerator, IsOwner,
+                               IsOwnerOrModeratorOrAdmin)
 
 from .models import Course, Lesson, Subscription
 from .paginators import CoursePagination, LessonPagination
-from .serializers import (
-    CourseDetailSerializer,
-    CourseSerializer,
-    LessonSerializer,
-    SubscriptionSerializer,
-)
+from .serializers import (CourseDetailSerializer, CourseSerializer,
+                          LessonSerializer, SubscriptionSerializer)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -53,6 +44,9 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Фильтруем queryset в зависимости от прав пользователя"""
+        if getattr(self, 'swagger_fake_view', False):
+            return Course.objects.none()
+
         user = self.request.user
         if user.is_staff:
             return Course.objects.all()
@@ -77,6 +71,9 @@ class LessonListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         """Фильтруем queryset в зависимости от прав пользователя"""
+        if getattr(self, 'swagger_fake_view', False):
+            return Lesson.objects.none()
+
         user = self.request.user
         if user.is_staff:
             return Lesson.objects.select_related("course").all()
@@ -103,6 +100,9 @@ class LessonRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         """Фильтруем queryset в зависимости от прав пользователя"""
+        if getattr(self, 'swagger_fake_view', False):
+            return Lesson.objects.none()
+
         user = self.request.user
         if user.is_staff:
             return Lesson.objects.select_related("course").all()

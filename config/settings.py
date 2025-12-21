@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "django_filters",
     "rest_framework",
     "rest_framework_simplejwt",
+    "drf_yasg",
     "users",
     "materials",
 ]
@@ -164,4 +165,25 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
     "SLIDING_TOKEN_LIFETIME": timedelta(days=1),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=7),
+}
+
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': 'Введите токен в формате: Bearer <ваш_токен>'
+        }
+    },
+    'USE_SESSION_AUTH': False,
+    'DOC_EXPANSION': 'none',
+    'DEEP_LINKING': True,
+}
+
+REDOC_SETTINGS = {
+    'LAZY_RENDERING': True,
+    'NATIVE_SCROLLBARS': True,
+    'REQUIRED_PROPS_FIRST': True,
 }

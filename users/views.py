@@ -8,14 +8,9 @@ from rest_framework.views import APIView
 from .models import Payment, User
 from .paginators import PaymentPagination, UserPagination
 from .permissions import IsOwnerOrModeratorOrAdmin
-from .serializers import (
-    PaymentSerializer,
-    PrivateUserSerializer,
-    PublicUserSerializer,
-    UserDetailSerializer,
-    UserRegisterSerializer,
-    UserSerializer,
-)
+from .serializers import (PaymentSerializer, PrivateUserSerializer,
+                          PublicUserSerializer, UserDetailSerializer,
+                          UserRegisterSerializer, UserSerializer)
 
 
 class RegisterAPIView(generics.CreateAPIView):
@@ -103,6 +98,9 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Фильтруем платежи в зависимости от прав пользователя"""
+        if getattr(self, 'swagger_fake_view', False):
+            return Payment.objects.none()
+
         user = self.request.user
 
         if user.is_staff:
