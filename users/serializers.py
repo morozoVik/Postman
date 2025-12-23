@@ -15,6 +15,9 @@ class PaymentSerializer(serializers.ModelSerializer):
     payment_method_display = serializers.CharField(
         source="get_payment_method_display", read_only=True
     )
+    stripe_payment_status_display = serializers.CharField(
+        source="get_stripe_payment_status_display", read_only=True
+    )
 
     class Meta:
         model = Payment
@@ -30,8 +33,22 @@ class PaymentSerializer(serializers.ModelSerializer):
             "amount",
             "payment_method",
             "payment_method_display",
+            "stripe_product_id",
+            "stripe_price_id",
+            "stripe_session_id",
+            "stripe_payment_link",
+            "stripe_payment_status",
+            "stripe_payment_status_display",
         ]
-        read_only_fields = ["payment_date"]
+        read_only_fields = [
+            "user",
+            "payment_date",
+            "stripe_product_id",
+            "stripe_price_id",
+            "stripe_session_id",
+            "stripe_payment_link",
+            "stripe_payment_status",
+        ]
 
 
 class UserSerializer(serializers.ModelSerializer):

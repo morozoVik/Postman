@@ -169,21 +169,30 @@ SIMPLE_JWT = {
 
 
 SWAGGER_SETTINGS = {
-    'SECURITY_DEFINITIONS': {
-        'Bearer': {
-            'type': 'apiKey',
-            'name': 'Authorization',
-            'in': 'header',
-            'description': 'Введите токен в формате: Bearer <ваш_токен>'
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "Введите токен в формате: Bearer <ваш_токен>",
         }
     },
-    'USE_SESSION_AUTH': False,
-    'DOC_EXPANSION': 'none',
-    'DEEP_LINKING': True,
+    "USE_SESSION_AUTH": False,
+    "DOC_EXPANSION": "none",
+    "DEEP_LINKING": True,
 }
 
 REDOC_SETTINGS = {
-    'LAZY_RENDERING': True,
-    'NATIVE_SCROLLBARS': True,
-    'REQUIRED_PROPS_FIRST': True,
+    "LAZY_RENDERING": True,
+    "NATIVE_SCROLLBARS": True,
+    "REQUIRED_PROPS_FIRST": True,
 }
+
+
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
+FRONTEND_SUCCESS_URL = config(
+    "FRONTEND_SUCCESS_URL", default="http://localhost:8000/success/"
+)
+FRONTEND_CANCEL_URL = config(
+    "FRONTEND_CANCEL_URL", default="http://localhost:8000/cancel/"
+)

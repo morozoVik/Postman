@@ -97,6 +97,29 @@ class Payment(models.Model):
         max_length=20, choices=PAYMENT_METHOD_CHOICES, verbose_name="Способ оплаты"
     )
 
+    stripe_product_id = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name="ID продукта в Stripe"
+    )
+    stripe_price_id = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name="ID цены в Stripe"
+    )
+    stripe_session_id = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name="ID сессии в Stripe"
+    )
+    stripe_payment_link = models.URLField(
+        max_length=2000, blank=True, null=True, verbose_name="Ссылка на оплату Stripe"
+    )
+    stripe_payment_status = models.CharField(
+        max_length=50,
+        default="unpaid",
+        verbose_name="Статус оплаты в Stripe",
+        choices=[
+            ("unpaid", "Не оплачено"),
+            ("paid", "Оплачено"),
+            ("canceled", "Отменено"),
+        ],
+    )
+
     class Meta:
         verbose_name = "Платеж"
         verbose_name_plural = "Платежи"
