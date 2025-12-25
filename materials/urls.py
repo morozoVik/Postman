@@ -7,6 +7,7 @@ from .views import (
     LessonRetrieveUpdateDestroyAPIView,
     SubscriptionAPIView,
 )
+from . import views
 
 router = DefaultRouter()
 router.register(r"courses", CourseViewSet)
@@ -20,4 +21,5 @@ urlpatterns = [
         name="lesson-detail",
     ),
     path("subscription/", SubscriptionAPIView.as_view(), name="subscription-manage"),
+    path("test-email/", views.test_email_view, name="test-email"),
 ]

@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
+
 
 from .validators import validate_youtube_url
 
@@ -17,6 +19,16 @@ class Course(models.Model):
         blank=True,
         verbose_name="Владелец",
         related_name="courses",
+    )
+
+    last_updated = models.DateTimeField(
+        verbose_name="Последнее обновление", auto_now=True, null=True, blank=True
+    )
+    last_notification_sent = models.DateTimeField(
+        verbose_name="Последняя отправка уведомления", null=True, blank=True
+    )
+    date_created = models.DateTimeField(
+        verbose_name="Дата создания", auto_now_add=True, null=True, blank=True
     )
 
     class Meta:
@@ -51,6 +63,13 @@ class Lesson(models.Model):
         related_name="lessons",
     )
 
+    date_created = models.DateTimeField(
+        verbose_name="Дата создания", auto_now_add=True, null=True, blank=True
+    )
+    date_updated = models.DateTimeField(
+        verbose_name="Дата обновления", auto_now=True, null=True, blank=True
+    )
+
     class Meta:
         verbose_name = "Урок"
         verbose_name_plural = "Уроки"
@@ -73,6 +92,8 @@ class Subscription(models.Model):
         related_name="subscriptions",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="дата подписки")
+
+    is_active = models.BooleanField(verbose_name="Активна", default=True)
 
     class Meta:
         unique_together = ["user", "course"]

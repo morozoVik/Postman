@@ -22,7 +22,7 @@ def check_payment_status():
                 "requires_payment_method",
                 "requires_action",
             ],
-            date_created__gte=one_hour_ago,
+            payment_date__gte=one_hour_ago,
         )
 
         updated_count = 0

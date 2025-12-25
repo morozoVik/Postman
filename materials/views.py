@@ -1,7 +1,8 @@
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, permissions, viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics, permissions, viewsets, status
+from rest_framework.decorators import action, permission_classes, api_view
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -13,6 +14,8 @@ from users.permissions import (
     IsOwner,
     IsOwnerOrModeratorOrAdmin,
 )
+
+from .tasks import check_and_send_course_updates, send_lesson_update_notifications
 
 from .models import Course, Lesson, Subscription
 from .paginators import CoursePagination, LessonPagination
@@ -67,6 +70,33 @@ class CourseViewSet(viewsets.ModelViewSet):
         """При создании курса назначаем текущего пользователя владельцем"""
         serializer.save(owner=self.request.user)
 
+    def perform_update(self, serializer):
+        """При обновлении курса отправляем уведомления подписчикам"""
+        course = serializer.save()
+
+        check_and_send_course_updates.delay(course.id)
+
+        return course
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def send_test_notification(self, request, pk=None):
+        """Ручная отправка тестового уведомления для курса"""
+        course = self.get_object()
+
+        from .tasks import send_course_update_notifications
+
+        task = send_course_update_notifications.delay(course.id, "обновлен (тест)")
+
+        return Response(
+            {
+                "status": "Тестовое уведомление отправляется",
+                "task_id": task.id,
+                "course": course.title,
+                "message": f'Тестовое уведомление для курса "{course.title}" поставлено в очередь',
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
+
 
 class LessonListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
@@ -92,7 +122,8 @@ class LessonListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         """При создании урока назначаем текущего пользователя владельцем"""
-        serializer.save(owner=self.request.user)
+        lesson = serializer.save(owner=self.request.user)
+        send_lesson_update_notifications.delay(lesson.id, "добавлен новый урок")
 
 
 class LessonRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -118,6 +149,28 @@ class LessonRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
         if user.groups.filter(name="Модераторы").exists():
             return Lesson.objects.select_related("course").all()
         return Lesson.objects.select_related("course").filter(owner=user)
+
+    def perform_update(self, serializer):
+        """При обновлении урока отправляем уведомления"""
+        lesson = serializer.save()
+
+        send_lesson_update_notifications.delay(lesson.id, "обновлен урок")
+
+        lesson.course.save()
+
+        check_and_send_course_updates.delay(lesson.course.id)
+
+    def perform_destroy(self, instance):
+        """При удалении урока также отправляем уведомления"""
+        course = instance.course
+
+        from .tasks import send_course_update_notifications
+
+        send_course_update_notifications.delay(
+            course.id, f"обновлен (удален урок: {instance.title})"
+        )
+
+        super().perform_destroy(instance)
 
 
 class SubscriptionAPIView(APIView):
@@ -155,3 +208,21 @@ class SubscriptionAPIView(APIView):
                 "course_title": course_item.title,
             }
         )
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def test_email_view(request):
+    """Эндпоинт для тестирования отправки email"""
+    from .tasks import test_email_notification
+
+    task = test_email_notification.delay()
+
+    return Response(
+        {
+            "status": "Тестовая задача отправки email запущена",
+            "task_id": task.id,
+            "message": "Проверьте логи Celery и вашу почту",
+        },
+        status=status.HTTP_202_ACCEPTED,
+    )
