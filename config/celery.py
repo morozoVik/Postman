@@ -26,10 +26,22 @@ app.conf.beat_schedule = {
         "task": "users.tasks.test_task",
         "schedule": timedelta(seconds=30),
         "args": ["Периодическая тестовая задача от Beat"],
+        'options': {'queue': 'default'},
     },
     "check-payment-status-every-5-minutes": {
         "task": "users.tasks.check_payment_status",
         "schedule": timedelta(minutes=5),
+        'options': {'queue': 'default'},
+    },
+    'deactivate-inactive-users-daily': {
+        'task': 'users.tasks.deactivate_inactive_users',
+        'schedule': crontab(hour=3, minute=0),
+        'options': {'queue': 'periodic'},
+    },
+    'send-new-lesson-notifications-daily': {
+        'task': 'materials.tasks.send_new_lesson_notifications',
+        'schedule': crontab(hour=9, minute=0),
+        'options': {'queue': 'periodic'},
     },
 }
 
