@@ -1,5 +1,5 @@
-from django_filters.rest_framework import DjangoFilterBackend
 from django.http import HttpResponse
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -9,20 +9,11 @@ from rest_framework.views import APIView
 from .models import Payment, User
 from .paginators import PaymentPagination, UserPagination
 from .permissions import IsOwnerOrModeratorOrAdmin
-from .serializers import (
-    PaymentSerializer,
-    PrivateUserSerializer,
-    PublicUserSerializer,
-    UserDetailSerializer,
-    UserRegisterSerializer,
-    UserSerializer,
-)
-from .services import (
-    create_stripe_checkout_session,
-    create_stripe_price,
-    create_stripe_product,
-    retrieve_stripe_session,
-)
+from .serializers import (PaymentSerializer, PrivateUserSerializer,
+                          PublicUserSerializer, UserDetailSerializer,
+                          UserRegisterSerializer, UserSerializer)
+from .services import (create_stripe_checkout_session, create_stripe_price,
+                       create_stripe_product, retrieve_stripe_session)
 
 
 class RegisterAPIView(generics.CreateAPIView):

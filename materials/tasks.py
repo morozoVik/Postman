@@ -1,9 +1,10 @@
 import logging
 from datetime import timedelta
+
 from celery import shared_task
-from django.utils import timezone
-from django.core.mail import send_mail
 from django.conf import settings
+from django.core.mail import send_mail
+from django.utils import timezone
 
 from .models import Course, Lesson, Subscription
 

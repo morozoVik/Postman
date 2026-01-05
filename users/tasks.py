@@ -1,9 +1,10 @@
 import logging
 from datetime import timedelta
+
 from celery import shared_task
-from django.utils import timezone
-from django.core.mail import send_mail
 from django.conf import settings
+from django.core.mail import send_mail
+from django.utils import timezone
 
 from .models import Payment, User
 from .services import retrieve_stripe_session
@@ -136,21 +137,18 @@ def test_task(message="Тестовая задача выполнена!"):
 def deactivate_inactive_users():
     """Деактивирует пользователей, которые не заходили более месяца"""
     try:
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         one_month_ago = timezone.now() - timedelta(days=30)
 
         inactive_users = User.objects.filter(
-            is_active=True,
-            last_login__lt=one_month_ago
+            is_active=True, last_login__lt=one_month_ago
         )
 
-
         never_logged_in = User.objects.filter(
-            is_active=True,
-            last_login__isnull=True,
-            date_joined__lt=one_month_ago
+            is_active=True, last_login__isnull=True, date_joined__lt=one_month_ago
         )
 
         users_to_deactivate = inactive_users | never_logged_in
@@ -166,10 +164,12 @@ def deactivate_inactive_users():
             try:
                 old_status = user.is_active
                 user.is_active = False
-                user.save(update_fields=['is_active'])
+                user.save(update_fields=["is_active"])
 
-                logger.info(f"Пользователь деактивирован: {user.email} "
-                            f"(последний вход: {user.last_login})")
+                logger.info(
+                    f"Пользователь деактивирован: {user.email} "
+                    f"(последний вход: {user.last_login})"
+                )
                 deactivated_count += 1
 
                 send_deactivation_notification.delay(user.id)
@@ -178,7 +178,9 @@ def deactivate_inactive_users():
                 logger.error(f"Ошибка при деактивации пользователя {user.email}: {e}")
                 continue
 
-        logger.info(f"Деактивировано {deactivated_count} из {count} неактивных пользователей")
+        logger.info(
+            f"Деактивировано {deactivated_count} из {count} неактивных пользователей"
+        )
         return f"Деактивировано {deactivated_count} из {count} неактивных пользователей"
 
     except Exception as e:
@@ -192,7 +194,7 @@ def send_deactivation_notification(user_id):
     try:
         user = User.objects.get(id=user_id)
 
-        subject = 'Ваш аккаунт был деактивирован'
+        subject = "Ваш аккаунт был деактивирован"
         message = f"""
         Уважаемый(ая) {user.email},
 
