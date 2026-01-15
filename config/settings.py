@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -232,3 +233,11 @@ if DEBUG:
     ALLOWED_HOSTS.extend(["backend", "0.0.0.0"])
 
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+if "test" in sys.argv:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }

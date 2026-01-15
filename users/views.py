@@ -8,12 +8,19 @@ from rest_framework.views import APIView
 
 from .models import Payment, User
 from .paginators import PaymentPagination, UserPagination
-from .permissions import IsOwnerOrModeratorOrAdmin
-from .serializers import (PaymentSerializer, PrivateUserSerializer,
-                          PublicUserSerializer, UserDetailSerializer,
-                          UserRegisterSerializer, UserSerializer)
-from .services import (create_stripe_checkout_session, create_stripe_price,
-                       create_stripe_product, retrieve_stripe_session)
+from .serializers import (
+    PaymentSerializer,
+    PrivateUserSerializer,
+    PublicUserSerializer,
+    UserRegisterSerializer,
+    UserSerializer,
+)
+from .services import (
+    create_stripe_checkout_session,
+    create_stripe_price,
+    create_stripe_product,
+    retrieve_stripe_session,
+)
 
 
 class RegisterAPIView(generics.CreateAPIView):

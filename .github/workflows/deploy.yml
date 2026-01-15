@@ -1,0 +1,100 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: postman_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run migrations
+      run: python manage.py migrate --noinput
+      env:
+        SECRET_KEY: ${{ secrets.TEST_SECRET_KEY }}
+        DEBUG: 'True'
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postman_test
+        DJANGO_SETTINGS_MODULE: config.settings
+
+    - name: Run tests
+      env:
+        SECRET_KEY: ${{ secrets.TEST_SECRET_KEY }}
+        DEBUG: 'True'
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postman_test
+        DJANGO_SETTINGS_MODULE: config.settings
+        CELERY_BROKER_URL: redis://localhost:6379/0
+      run: |
+        python manage.py test --verbosity=2
+        
+        echo "✅ Тесты успешно пройдены!"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Deploy to Server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          cd ${{ secrets.DEPLOY_DIR }}
+          
+          docker compose down
+          
+          git pull origin develop
+          
+          if [ ! -f .env ]; then
+            echo "Создаю .env файл из примера..."
+            cp .env.example .env
+            echo "ВНИМАНИЕ: Отредактируйте .env файл на сервере!"
+          fi
+          
+          docker compose up -d --build
+          
+          echo "Ждем запуска БД..."
+          sleep 15
+          
+          docker compose exec -T backend python manage.py migrate --noinput
+          
+          docker compose exec -T backend python manage.py collectstatic --noinput
+          
+          echo "Проверяем health endpoint..."
+          sleep 5
+          curl -f http://localhost:8000/api/health/ || exit 1
+          
+          echo "Деплой успешно завершен!"

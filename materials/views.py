@@ -1,4 +1,3 @@
-from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -6,16 +5,12 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from users.permissions import (CanViewOwnObjects, IsAdminOrModerator,
-                               IsModerator, IsNotModerator, IsOwner,
-                               IsOwnerOrModeratorOrAdmin)
+from users.permissions import IsNotModerator, IsOwner, IsOwnerOrModeratorOrAdmin
 
 from .models import Course, Lesson, Subscription
 from .paginators import CoursePagination, LessonPagination
-from .serializers import (CourseDetailSerializer, CourseSerializer,
-                          LessonSerializer, SubscriptionSerializer)
-from .tasks import (check_and_send_course_updates,
-                    send_lesson_update_notifications)
+from .serializers import CourseDetailSerializer, CourseSerializer, LessonSerializer
+from .tasks import check_and_send_course_updates, send_lesson_update_notifications
 
 
 class CourseViewSet(viewsets.ModelViewSet):

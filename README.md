@@ -103,3 +103,32 @@ docker-compose up -d --build
 2. Доступен ли health check: curl http://localhost:8000/api/health/
 3. Проверьте логи проблемного сервиса
 
+## 🚀 Деплой на Yandex Cloud
+
+### Информация о сервере:
+- **IP адрес:** 158.160.89.197
+- **Пользователь:** test
+- **Приложение:** http://158.160.89.197:8000
+- **Health check:** http://158.160.89.197:8000/api/health/
+
+### CI/CD Pipeline:
+
+GitHub Actions автоматически:
+1. **Запускает тесты** при каждом push в ветку `develop`
+2. **Деплоит на сервер** если тесты прошли успешно
+
+### Настройка для разработчиков:
+
+1. **Клонируйте проект:**
+```
+git clone https://github.com/morozoVik/postman.git
+cd postman
+ ```
+2. **Настройте окружение::**
+```
+cp .env.example
+```
+3. **Запустите локально:**
+```
+docker-compose up -d
+```
