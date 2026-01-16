@@ -1,0 +1,90 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postman_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postman_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: postman_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build: .
+    container_name: postman_backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-test-key-12345
+      - POSTGRES_DB=postman_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    volumes:
+      - .:/app
+    ports:
+      - '8000:8000'
+    command: >
+      sh -c 'sleep 5 &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000'
+
+  celery_worker:
+    build: .
+    container_name: postman_celery_worker
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    volumes:
+      - .:/app
+    command: celery -A config worker --loglevel=info --pool=solo
+
+  celery_beat:
+    build: .
+    container_name: postman_celery_beat
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - postgres
+      - backend
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    volumes:
+      - .:/app
+    command: >
+      sh -c 'sleep 10 &&
+             celery -A config beat --loglevel=info'
+
+volumes:
+  postgres_data:
+  redis_data:

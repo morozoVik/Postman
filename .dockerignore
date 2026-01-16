@@ -1,16 +1,8 @@
-# Virtual Environment
-venv/
-.venv/
-env/
-
-# Database
-*.sqlite3
-*.db
-
-# Environment variables
+# Environment
 .env
-.env.local
 .env.production
+.env.local
+.env.*.local
 
 # Python
 __pycache__/
@@ -34,9 +26,19 @@ wheels/
 .installed.cfg
 *.egg
 
+# Django
+*.log
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
 # IDE
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
 
@@ -49,24 +51,15 @@ wheels/
 ehthumbs.db
 Thumbs.db
 
-# Django
-*.log
-*.pot
-*.pyc
-__pycache__/
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-media/
-!media/.gitkeep
-staticfiles/
-
 # Docker
 docker-compose.override.yml
+docker-compose.yml
+Dockerfile
+.dockerignore
 
-# Celery
-celerybeat-schedule
-celerybeat-schedule.*
+# Git
+.git/
+.gitignore
 
 # Coverage
 .coverage
@@ -76,3 +69,13 @@ htmlcov/
 # Test
 .pytest_cache/
 .mypy_cache/
+
+# Celery
+celerybeat-schedule
+celerybeat-schedule.*
+
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
