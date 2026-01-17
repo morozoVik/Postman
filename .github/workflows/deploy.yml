@@ -48,6 +48,7 @@ jobs:
       env:
         PGPASSWORD: postgres
       run: |
+        psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS postman_test;" || true
         psql -h localhost -U postgres -c "CREATE DATABASE postman_test;"
         psql -h localhost -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE postman_test TO postgres;"
 
@@ -123,7 +124,6 @@ jobs:
             sleep 5
           done
           
-          # Финальная проверка
           if curl -f http://localhost:8000/api/health/; then
             echo "Деплой завершен успешно!"
             echo "Приложение доступно по: http://${{ secrets.SERVER_IP }}:8000"
