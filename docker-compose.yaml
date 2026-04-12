@@ -31,22 +31,26 @@ services:
     container_name: postman_backend
     restart: unless-stopped
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings
-      - DEBUG=True
-      - SECRET_KEY=django-insecure-test-key-12345
-      - POSTGRES_DB=postman_db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-change-me}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-158.160.89.197,localhost,127.0.0.1}
+      - POSTGRES_DB=${POSTGRES_DB:-postman_db}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - CELERY_BROKER_URL=redis://redis:6379/0
     volumes:
       - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     ports:
       - '8000:8000'
     command: >

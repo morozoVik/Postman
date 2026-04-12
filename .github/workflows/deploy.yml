@@ -3,6 +3,8 @@ name: Deploy to Production
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test:
@@ -24,6 +26,11 @@ jobs:
 
       redis:
         image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
         ports: ["6379:6379"]
 
     steps:
@@ -37,13 +44,27 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run migrations
-      run: python manage.py migrate --noinput
+    - name: Create test database
       env:
-        SECRET_KEY: ${{ secrets.TEST_SECRET_KEY }}
+        PGPASSWORD: postgres
+      run: |
+        psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS postman_test;" || true
+        psql -h localhost -U postgres -c "CREATE DATABASE postman_test;"
+        psql -h localhost -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE postman_test TO postgres;"
+
+    - name: Run migrations
+      env:
+        SECRET_KEY: test-secret-key-for-ci-12345
         DEBUG: 'True'
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postman_test
+        POSTGRES_DB: postman_test
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5432
         DJANGO_SETTINGS_MODULE: config.settings
+      run: |
+        python manage.py migrate --noinput
+        echo "Миграции выполнены успешно!"
 
     - name: Run tests
       env:
@@ -55,12 +76,12 @@ jobs:
       run: |
         python manage.py test --verbosity=2
         
-        echo "✅ Тесты успешно пройдены!"
+        echo "Тесты успешно пройдены!"
 
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
     - uses: actions/checkout@v4
@@ -72,29 +93,43 @@ jobs:
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         script: |
+          echo "Начинаем деплой на сервер..."
+          
           cd ${{ secrets.DEPLOY_DIR }}
           
-          docker compose down
+          echo "Останавливаем текущие контейнеры..."
+          docker compose down 2>/dev/null || true
           
-          git pull origin develop
+          echo "Получаем последние изменения..."
+          git fetch origin main
+          git reset --hard origin/main
           
-          if [ ! -f .env ]; then
-            echo "Создаю .env файл из примера..."
-            cp .env.example .env
-            echo "ВНИМАНИЕ: Отредактируйте .env файл на сервере!"
-          fi
+          echo "Перестраиваем контейнеры..."
+          docker compose build --no-cache
           
-          docker compose up -d --build
+          echo "Запускаем контейнеры..."
+          docker compose up -d
           
-          echo "Ждем запуска БД..."
+          echo "Ждем запуска приложения..."
           sleep 15
           
-          docker compose exec -T backend python manage.py migrate --noinput
+          echo "Проверяем health check..."
+
+          for i in {1..5}; do
+            if curl -f http://localhost:8000/api/health/ > /dev/null 2>&1; then
+              echo "Приложение запущено успешно!"
+              break
+            fi
+            echo "Попытка $i/5..."
+            sleep 5
+          done
           
-          docker compose exec -T backend python manage.py collectstatic --noinput
-          
-          echo "Проверяем health endpoint..."
-          sleep 5
-          curl -f http://localhost:8000/api/health/ || exit 1
-          
-          echo "Деплой успешно завершен!"
+          if curl -f http://localhost:8000/api/health/; then
+            echo "Деплой завершен успешно!"
+            echo "Приложение доступно по: http://${{ secrets.SERVER_IP }}:8000"
+          else
+            echo "Health check не прошел!"
+            echo "Логи контейнера backend:"
+            docker compose logs backend --tail=50
+            exit 1
+          fi
